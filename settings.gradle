@@ -1,0 +1,33 @@
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        flatDir {
+            dir("libs")
+        }
+    }
+}
+
+rootProject.name = "Sample"
+include ':app'
+include ':pistola'
+//include ':pistola:zebra_api3_ascii'
+//include ':pistola:zebra_api3_cmn'
+//include ':pistola:zebra_api3_interface'
+include ':pistola:RFIDAPI3Library'
+include ':pistola:BarcodeScannerLibrary'

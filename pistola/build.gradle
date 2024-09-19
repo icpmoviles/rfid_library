@@ -1,0 +1,52 @@
+plugins {
+    alias(libs.plugins.android.library)
+}
+
+android {
+    namespace 'es.icp.pistola'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 26
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+
+//    implementation fileTree(dir: 'libs', include: ['*.jar'])
+//    implementation fileTree(dir: 'libs', include: ['*.jar','*.aar'])
+
+    implementation project(':pistola:RFIDAPI3Library')
+    implementation(project(':pistola:BarcodeScannerLibrary')) {
+        exclude group: 'com.google.code.gson'
+    }
+//    implementation project(':pistola:zebra_api3_ascii')
+//    implementation project(':pistola:zebra_api3_cmn')
+//    implementation project(':pistola:zebra_api3_interface')
+
+    //ICP COMMONS
+    implementation libs.icp.commons
+
+    //MyLog: Logs de apps
+    implementation libs.icp.logs
+
+    implementation libs.androidx.appcompat
+    implementation libs.material
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.espresso.core
+}

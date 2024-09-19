@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="notificacion_no_progress">La notificación no permite progress</string>
+    <string name="notificacion_no_simple">La notificación no permite simple</string>
+</resources>
