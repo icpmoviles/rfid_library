@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import es.icp.icp_commons.CommonsCore.CommonsExecutors;
 import es.icp.logs.core.MyLog;
 
 public class ZebraManagerV2 {
@@ -49,7 +50,6 @@ public class ZebraManagerV2 {
     private ConnectedHandlerInterface connectedHandler;
     private ResponseHandlerInterface responseHandler;
     private Context context;
-    private boolean inicializado = false;
     private Thread conexion;
 
     public ZebraManagerV2(Context context, ResponseHandlerInterface responseHandler, ConnectedHandlerInterface connectedHandler) {
@@ -65,7 +65,6 @@ public class ZebraManagerV2 {
         this.barcodeConnection = NO_TRIED;
         this.defaultMode = defaultMode;
         this.runnableMode = runnableMode;
-        this.inicializado = true;
 
 //        this.connect();
         this.prepare();
@@ -81,7 +80,6 @@ public class ZebraManagerV2 {
 
     public void connect() {
         if (this.timer != null) timer.cancel();
-        if (!this.inicializado) return; // en caso de no haber inicializado el objeto
         if (!configuradorBluetooth())
             return; // en caso de error de bluetooth, no se procede a la conexión
         //if (this.rfidHandler != null || this.barcodeHandler != null) return ; // en caso de haber una conexión en proceso
@@ -91,7 +89,14 @@ public class ZebraManagerV2 {
             //return ;
         }
         if (isRfidConnected()) this.rfidHandler.onDestroy();
-        if (isBarcodeConnected()) this.barcodeHandler.onDestroy();
+        if (isBarcodeConnected()) {
+            CommonsExecutors.getExecutor().Main().execute(new Runnable() {
+                @Override
+                public void run() {
+                    barcodeHandler.onDestroy();
+                }
+            });
+        }
 
         this.conexion = new Thread() {
             @Override
@@ -103,18 +108,20 @@ public class ZebraManagerV2 {
                             rfidHandler = new RFIDHandlerV2(context, RFID_MODE, responseHandler, connectedSonHandler, false);
                             MyLog.d("INTENTANDO CONECTAR CON RFID...");
                         } else {
-                            MyLog.d("INTENTANDO CONECTAR CON RFID...");
+                            MyLog.d("INTENTANDO CONECTAR CON BARCODE P1...");
                             rfidHandler = new RFIDHandlerV2(context, BARCODE_MODE, responseHandler, connectedSonHandler, false);
                         }
                     }
                     if (runnableMode == RunnableMode.BARCODE_ONLY) {
-                        Log.d("ZEBRA_MANAGER", "Conectando BARCODE");
-                        MyLog.d("INTENTANDO CONECTAR CON BARCODE...");
+                        MyLog.d("Conectando BARCODE");
+                        MyLog.d("INTENTANDO CONECTAR CON BARCODE P2...");
                         barcodeHandler = new BarcodeHandlerV2(context, responseHandler, connectedSonHandler);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-//                    Helper.TratarExcepcion(context, e.getMessage(), "ZebraManagerV2 Exception  - connect", e, "");
+                    //Helper.TratarExcepcion(context, e.getMessage(), "ZebraManagerV2 Exception  - connect", e, "");
+                    MyLog.e("ERROR " + new Object() {
+                    }.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
                     connectedHandler.handleConnection(false);
                 }
             }
@@ -137,7 +144,6 @@ public class ZebraManagerV2 {
     }
 
     // LISTENER PARA LA CONEXIÓN DE LOS HANDLER
-
     protected ConnectedSonHandlerInterface connectedSonHandler = new ConnectedSonHandlerInterface() {
         @Override
         public synchronized void handleConnection(int connection, int mode) {
@@ -208,25 +214,23 @@ public class ZebraManagerV2 {
     // MÉTODOS PÚBLICOS
 
     public ArrayList<ReaderDevice> getAvailableDevices() throws InvalidUsageException {
-//        return RFIDHandlerV2.availableRFIDReaderList;
-        return RFIDHandlerV2.readers.GetAvailableRFIDReaderList();
-//        rfidHandler.GetAvailableReader();
-//        return RFIDHandlerV2.availableRFIDReaderList;
+        if (RFIDHandlerV2.readers != null) {
+            if (RFIDHandlerV2.readers.GetAvailableRFIDReaderList() == null)
+                return new ArrayList<ReaderDevice>();
+            else
+                return RFIDHandlerV2.readers.GetAvailableRFIDReaderList();
+        } else {
+            return new ArrayList<ReaderDevice>();
+        }
     }
 
     public void setConnectedHandler(ConnectedHandlerInterface connectedHandler) {
         this.connectedHandler = connectedHandler;
     }
 
-    public void setModoBarcode() {
-        if (isConnected()) {
-            rfidHandler.SetTriggerMode("Barcode");
-            mode = BARCODE_MODE;
-        }
-    }
-
     public void cambiarModo() {
         if (isConnected()) {
+
 
             if (this.mode == RFID_MODE) {
                 if (RfidGlobalVariables.PUEDE_LEER_BARCODE) {
@@ -238,21 +242,6 @@ public class ZebraManagerV2 {
                     rfidHandler.SetTriggerMode("RFID");
                     mode = RFID_MODE;
                 }
-            }
-        }
-    }
-
-    public void cambiarModo(int tipo) {
-        if (isConnected()) {
-            switch (tipo) {
-                case BARCODE_MODE:
-                    rfidHandler.SetTriggerMode("Barcode");
-                    mode = BARCODE_MODE;
-                    break;
-                case RFID_MODE:
-                    rfidHandler.SetTriggerMode("RFID");
-                    mode = RFID_MODE;
-                    break;
             }
         }
     }
@@ -308,8 +297,16 @@ public class ZebraManagerV2 {
         } else {
             if (!bluetoothAdapter.isEnabled()) {
                 if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    bluetoothAdapter.enable();
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return false;
                 }
+                bluetoothAdapter.enable();
             }
             return true;
         }
@@ -340,33 +337,4 @@ public class ZebraManagerV2 {
         if (this.rfidHandler != null && isRfidConnected()) this.rfidHandler.onDestroy();
         if (this.barcodeHandler != null && isBarcodeConnected()) this.barcodeHandler.onDestroy();
     }
-
-    // INTERFACES PÚBLICAS
-
-    public interface ResponseHandlerInterface {
-        void handleTagdata(TagData[] tagData);
-
-        void handleBarcode(Barcode barcode);
-
-        void handleTriggerPress(boolean pressed);
-    }
-
-    public interface ConnectedHandlerInterface {
-        void handleConnection(boolean connected);
-
-        void handleBattery(int level, boolean charging, String cause);
-
-//        void handleTemperatureAlarm(ALARM_LEVEL level, int current, int ambient, String cause);
-    }
-
-    // INTERFACES INTERNAS
-
-    protected interface ConnectedSonHandlerInterface {
-        void handleConnection(int connection, int mode);
-
-        void handleBattery(int level, boolean charging, String cause);
-
-//        void handleTemperatureAlarm(ALARM_LEVEL level, int current, int ambient, String cause);
-    }
 }
-

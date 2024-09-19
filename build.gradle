@@ -1,7 +1,39 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-plugins {
-alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.jetbrains.kotlin.android) apply false
-    alias(libs.plugins.android.library) apply false
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0'
+
+        // Check for v3.1.2 or higher
+        classpath 'com.google.gms:google-services:4.3.10'  // Google Services plugin
+
+        // Crashlytics
+        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.8.1'  // Crashlytics plugin
+
+
+        // Add the dependency for the Performance Monitoring plugin
+        classpath 'com.google.firebase:perf-plugin:1.4.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'// Performance Monitoring plugin
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://jitpack.io'}
+
+
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }
 

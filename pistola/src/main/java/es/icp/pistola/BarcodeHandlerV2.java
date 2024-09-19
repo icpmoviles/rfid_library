@@ -1,8 +1,9 @@
 package es.icp.pistola;
 
-
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.zebra.barcode.sdk.sms.ConfigurationUpdateEvent;
@@ -15,29 +16,33 @@ import com.zebra.scannercontrol.SDKHandler;
 import java.util.ArrayList;
 import java.util.List;
 
+import es.icp.icp_commons.CommonsCore.CommonsExecutors;
 import es.icp.logs.core.MyLog;
 
-public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
+public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate {
 
     public SDKHandler sdkHandler;
 
     public AvailableScanner availableScanner;
 
     public Context context;
-    public ZebraManagerV2.ConnectedSonHandlerInterface connectedHandlerInterface;
-    public ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface;
+    public ConnectedSonHandlerInterface connectedHandlerInterface;
+    public ResponseHandlerInterface responseHandlerInterface;
 
     private boolean connected;
 
-    public BarcodeHandlerV2(Context context, ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface, ZebraManagerV2.ConnectedSonHandlerInterface connectedHandlerInterface){
+    public BarcodeHandlerV2(Context context, ResponseHandlerInterface responseHandlerInterface, ConnectedSonHandlerInterface connectedHandlerInterface) {
+
+        //Se necesita el hilo principal para poder registrar correctamente el observer de la pistola android api 33
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+
         this.context = context;
         this.connectedHandlerInterface = connectedHandlerInterface;
         this.responseHandlerInterface = responseHandlerInterface;
 
-        new Thread(){
+        mainHandler.post(new Runnable() {
             @Override
             public void run() {
-                super.run();
                 DCSSDKDefs.DCSSDK_RESULT result = inicializarSdkHandler();
 
                 if (result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE && result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SCANNER_NOT_AVAILABLE) {
@@ -47,49 +52,47 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
                     BarcodeHandlerV2.this.connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.BARCODE_MODE);
                 }
             }
-        }.start();
-
+        });
     }
 
-    public DCSSDKDefs.DCSSDK_RESULT inicializarSdkHandler(){
-        //if (sdkHandler == null){
-        sdkHandler = new SDKHandler(context);
-        //}
+    public DCSSDKDefs.DCSSDK_RESULT inicializarSdkHandler() {
+        try{
+            //if (sdkHandler == null){
+            sdkHandler = new SDKHandler(context);
+            //}
 
 
-        sdkHandler.dcssdkSetDelegate(this);
+            sdkHandler.dcssdkSetDelegate(this);
 
-        sdkHandler.dcssdkSetOperationalMode(DCSSDKDefs.DCSSDK_MODE.DCSSDK_OPMODE_BT_NORMAL);
-        sdkHandler.dcssdkEnableAvailableScannersDetection(true);
-        initializeDcsSdkWithAppSettings();
-        DCSSDKDefs.DCSSDK_RESULT result = DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE;
-//        int pos = 0;
-//        do {
-//            pos++;
-//            RfidGlobalVariables.LAST_CONNECTED_READER_POS = pos;
-//            MyLog.d("SE INTENTA CONECTAR AL READER " + RfidGlobalVariables.LAST_CONNECTED_READER_POS);
-//            result = sdkHandler.dcssdkEstablishCommunicationSession(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
-//        } while (result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE);
+            sdkHandler.dcssdkSetOperationalMode(DCSSDKDefs.DCSSDK_MODE.DCSSDK_OPMODE_BT_NORMAL);
+            sdkHandler.dcssdkEnableAvailableScannersDetection(true);
+            initializeDcsSdkWithAppSettings();
+            DCSSDKDefs.DCSSDK_RESULT result = DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE;
 
+            ArrayList<DCSScannerInfo> scannerTreeList = new ArrayList<DCSScannerInfo>();
+            sdkHandler.dcssdkGetAvailableScannersList(scannerTreeList);
+            sdkHandler.dcssdkGetActiveScannersList(scannerTreeList);
 
-        ArrayList<DCSScannerInfo> scannerTreeList=new ArrayList<DCSScannerInfo>();
-        sdkHandler.dcssdkGetAvailableScannersList(scannerTreeList);
-        sdkHandler.dcssdkGetActiveScannersList(scannerTreeList);
-
-        for (DCSScannerInfo s : scannerTreeList) {
-            if (s.getScannerName().equals(RfidGlobalVariables.LAST_CONNECTED_READER)) {
-                RfidGlobalVariables.LAST_CONNECTED_READER_POS = s.getScannerID();
-                return sdkHandler.dcssdkEstablishCommunicationSession(s.getScannerID());
+            for (DCSScannerInfo s : scannerTreeList) {
+                if (s.getScannerName().equals(RfidGlobalVariables.LAST_CONNECTED_READER) && sdkHandler != null) {
+                    RfidGlobalVariables.LAST_CONNECTED_READER_POS = s.getScannerID();
+                    return sdkHandler.dcssdkEstablishCommunicationSession(s.getScannerID());
+                }
             }
+        }catch (Exception ex){
+            ex.printStackTrace();
         }
+
         return DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE;
     }
 
-    private class MyAsyncTask extends AsyncTask<Void,AvailableScanner,Boolean> {
+    private class MyAsyncTask extends AsyncTask<Void, AvailableScanner, Boolean> {
         private AvailableScanner scanner;
-        public MyAsyncTask(AvailableScanner scn){
-            this.scanner=scn;
+
+        public MyAsyncTask(AvailableScanner scn) {
+            this.scanner = scn;
         }
+
         @Override
         protected Boolean doInBackground(Void... voids) {
 //            DCSSDKDefs.DCSSDK_RESULT result =
@@ -104,14 +107,13 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 //                return false;
 //            }
 //            return false;
-            DCSSDKDefs.DCSSDK_RESULT result =connect(scanner.getScannerId());
-            if(result== DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS){
+            DCSSDKDefs.DCSSDK_RESULT result = connect(scanner.getScannerId());
+            if (result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS) {
 //                curAvailableScanner = scanner;
 //                curAvailableScanner.setConnected(true);
                 connected = true;
                 return true;
-            }
-            else {
+            } else {
 //                curAvailableScanner=null;
                 connected = false;
                 return false;
@@ -124,7 +126,22 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
         Log.d("BARCODE_HANDLER", "Encontrado scanner... comenzando conexión.");
         this.availableScanner = new AvailableScanner(availableScanner);
 
-        new MyAsyncTask(this.availableScanner).execute();
+        CommonsExecutors.getExecutor().Main().execute(new Runnable() {
+            @Override
+            public void run() {
+//                new MyAsyncTask(BarcodeHandlerV2.this.availableScanner).execute();
+
+                DCSSDKDefs.DCSSDK_RESULT result = connect(BarcodeHandlerV2.this.availableScanner.getScannerId());
+                if (result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS) {
+//                curAvailableScanner = scanner;
+//                curAvailableScanner.setConnected(true);
+                    connected = true;
+                } else {
+//                curAvailableScanner=null;
+                    connected = false;
+                }
+            }
+        });
 
 //        /* notify connections delegates */
 //        for (IScannerAppEngineDevConnectionsDelegate delegate : mDevConnDelegates) {
@@ -141,10 +158,6 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 //        }
     }
 
-    @Override
-    public void dcssdkEventConfigurationUpdate(ConfigurationUpdateEvent configurationUpdateEvent) {
-
-    }
 //    public ZebraManagerV2.ConnectedSonHandlerInterface getConnectedHandlerInterface() {
 //        return connectedHandlerInterface;
 //    }
@@ -153,11 +166,11 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 //        this.connectedHandlerInterface = connectedHandlerInterface;
 //    }
 //
-//    public ZebraManagerV2.ResponseHandlerInterface getResponseHandlerInterface() {
+//    public ResponseHandlerInterface getResponseHandlerInterface() {
 //        return responseHandlerInterface;
 //    }
 //
-//    public void setResponseHandlerInterface(ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface) {
+//    public void setResponseHandlerInterface(ResponseHandlerInterface responseHandlerInterface) {
 //        this.responseHandlerInterface = responseHandlerInterface;
 //    }
 
@@ -166,18 +179,24 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
         disconnect(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
     }
 
-    public void onResume() {
-//        sdkHandler.dcssdkEstablishCommunicationSession(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
-//        new MyAsyncTask(this.availableScanner).execute();
-        DCSSDKDefs.DCSSDK_RESULT result = inicializarSdkHandler();
-        connect(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
+    public void setAsConnected() {
+        this.connected = true;
+    }
 
-        if (result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE && result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SCANNER_NOT_AVAILABLE) {
-            this.connected = true;
-            connectedHandlerInterface.handleConnection(ZebraManagerV2.CONNECTED, ZebraManagerV2.BARCODE_MODE);
-        } else {
-            connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.BARCODE_MODE);
-        }
+    public void onResume() {
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        mainHandler.post(() -> {
+            DCSSDKDefs.DCSSDK_RESULT result = inicializarSdkHandler();
+            connect(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
+
+            if (result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE && result != DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SCANNER_NOT_AVAILABLE) {
+                //this.connected = true;
+                setAsConnected();
+                connectedHandlerInterface.handleConnection(ZebraManagerV2.CONNECTED, ZebraManagerV2.BARCODE_MODE);
+            } else {
+                connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.BARCODE_MODE);
+            }
+        });
     }
 
     public void onDestroy() {
@@ -194,17 +213,16 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
     }
 
 
-
     @Override
     public void dcssdkEventCommunicationSessionEstablished(DCSScannerInfo availableScanner) {
         Log.d("BARCODE_HANDLER", "SessionEstablished");
         Log.d("BARCODE_HANDLER", "Encontrado scanner... comenzando conexión.");
         MyLog.d("ESTABLECIENDO SESIÓN...");
 
-//        if (!availableScanner.getScannerName().equals(RfidGlobalVariables.LAST_CONNECTED_READER)) {
-//            RfidGlobalVariables.LAST_CONNECTED_READER_POS++;
+//        if (!availableScanner.getScannerName().equals(GlobalVariables.LAST_CONNECTED_READER)) {
+//            GlobalVariables.LAST_CONNECTED_READER_POS++;
 //            sdkHandler.dcssdkTerminateCommunicationSession(availableScanner.getScannerID());
-//            sdkHandler.dcssdkEstablishCommunicationSession(RfidGlobalVariables.LAST_CONNECTED_READER_POS);
+//            sdkHandler.dcssdkEstablishCommunicationSession(GlobalVariables.LAST_CONNECTED_READER_POS);
 //            MyLog.d("NO COINCIDIA...");
 //        }
 
@@ -224,13 +242,13 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 //        this.connected = false;
     }
 
-    public boolean isReaderConnected(){
+    public boolean isReaderConnected() {
         return this.connected;
     }
 
     @Override
     public void dcssdkEventBarcode(byte[] barcodeData, int barcodeType, int fromScannerID) {
-        Barcode barcode=new Barcode(barcodeData,barcodeType,fromScannerID);
+        Barcode barcode = new Barcode(barcodeData, barcodeType, fromScannerID);
         Log.d("BARCODE_HANDLER", barcode.toString());
         if (RfidGlobalVariables.PUEDE_LEER_BARCODE) {
             responseHandlerInterface.handleBarcode(barcode);
@@ -259,6 +277,11 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 
     @Override
     public void dcssdkEventAuxScannerAppeared(DCSScannerInfo dcsScannerInfo, DCSScannerInfo dcsScannerInfo1) {
+
+    }
+
+    @Override
+    public void dcssdkEventConfigurationUpdate(ConfigurationUpdateEvent configurationUpdateEvent) {
 
     }
 
@@ -390,7 +413,7 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 
     private void addToScannerList(DCSScannerInfo s) {
 //        mScannerInfoList.add(s);
-        if(s.getAuxiliaryScanners() !=null) {
+        if (s.getAuxiliaryScanners() != null) {
             for (DCSScannerInfo aux :
                     s.getAuxiliaryScanners().values()) {
                 addToScannerList(aux);
@@ -415,11 +438,14 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
     public void disconnect(int scannerId) {
         if (sdkHandler != null) {
 
-
-            DCSSDKDefs.DCSSDK_RESULT ret = sdkHandler.dcssdkTerminateCommunicationSession(scannerId);
-            this.connected = false;
+            try {
+                DCSSDKDefs.DCSSDK_RESULT ret = sdkHandler.dcssdkTerminateCommunicationSession(scannerId); // la librería de ZEBRA falla de vez en cuando aqui!!! lo dice Crashlytics -> com.zebra.scannercontrol.BluetoothLEManager$LEEventHandler.<init> (BluetoothLEManager.java:657)
+                this.connected = false;
 //            ScannersActivity.curAvailableScanner=null;
-            updateScannersList();
+                updateScannersList();
+            } catch (Exception e) {
+                e.printStackTrace(); // no le veo otra solución que tracachearlo... es una movida que depende de ZEBRA
+            }
         }
     }
 
@@ -427,7 +453,7 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
     public DCSSDKDefs.DCSSDK_RESULT setAutoReconnectOption(int scannerId, boolean enable) {
         DCSSDKDefs.DCSSDK_RESULT ret;
         if (sdkHandler != null) {
-            ret =  sdkHandler.dcssdkEnableAutomaticSessionReestablishment(enable, scannerId);
+            ret = sdkHandler.dcssdkEnableAutomaticSessionReestablishment(enable, scannerId);
             return ret;
         }
         return DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE;
@@ -494,15 +520,14 @@ public class BarcodeHandlerV2 implements ScannerAppEngine, IDcsSdkApiDelegate{
 
     @Override
     public boolean executeCommand(DCSSDKDefs.DCSSDK_COMMAND_OPCODE opCode, String inXML, StringBuilder outXML, int scannerID) {
-        if (sdkHandler != null)
-        {
-            if(outXML == null){
+        if (sdkHandler != null) {
+            if (outXML == null) {
                 outXML = new StringBuilder();
             }
-            DCSSDKDefs.DCSSDK_RESULT result=sdkHandler.dcssdkExecuteCommandOpCodeInXMLForScanner(opCode,inXML,outXML,scannerID);
-            if(result== DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS)
+            DCSSDKDefs.DCSSDK_RESULT result = sdkHandler.dcssdkExecuteCommandOpCodeInXMLForScanner(opCode, inXML, outXML, scannerID);
+            if (result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS)
                 return true;
-            else if(result==DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE)
+            else if (result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_FAILURE)
                 return false;
         }
         return false;

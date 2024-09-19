@@ -1,6 +1,11 @@
 package es.icp.pistola;
 
+import static android.content.Context.RECEIVER_EXPORTED;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.TextView;
@@ -36,13 +41,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import es.icp.logs.core.MyLog;
 
 public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
-    static boolean reconexion = true;
+        static boolean reconexion = true;
 
 
     final static String TAG = "RFID_SAMPLE";
@@ -56,16 +59,16 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
     // UI and context
     TextView textView;
     private Context context;
-    private ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface;
-    private ZebraManagerV2.ConnectedSonHandlerInterface connectedHandlerInterface;
+    private ResponseHandlerInterface responseHandlerInterface;
+    private ConnectedSonHandlerInterface connectedHandlerInterface;
     private int defaultMode;
     // general
     private int MAX_POWER = 270;
     // In case of RFD8500 change reader name with intended device below from list of paired RFD8500
     String readername = "RFD8500123";
 
-    public RFIDHandlerV2(Context context, int defaultMode, ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface,
-                         ZebraManagerV2.ConnectedSonHandlerInterface connectedHandlerInterface, boolean init) {
+    public RFIDHandlerV2(Context context, int defaultMode, ResponseHandlerInterface responseHandlerInterface,
+                         ConnectedSonHandlerInterface connectedHandlerInterface, boolean init) {
         this.context = context;
         this.defaultMode = defaultMode;
         this.responseHandlerInterface = responseHandlerInterface;
@@ -82,11 +85,11 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 //        this.context = context;
 //    }
 //
-//    public ZebraManagerV2.ResponseHandlerInterface getResponseHandlerInterface() {
+//    public ResponseHandlerInterface getResponseHandlerInterface() {
 //        return responseHandlerInterface;
 //    }
 //
-//    public void setResponseHandlerInterface(ZebraManagerV2.ResponseHandlerInterface responseHandlerInterface) {
+//    public void setResponseHandlerInterface(ResponseHandlerInterface responseHandlerInterface) {
 //        this.responseHandlerInterface = responseHandlerInterface;
 //    }
 //
@@ -105,40 +108,46 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
         try {
             // Power to 270
             Antennas.AntennaRfConfig config = null;
-            try {
-                config = reader.Config.Antennas.getAntennaRfConfig(1);
-                config.setTransmitPowerIndex(MAX_POWER);
-                config.setrfModeTableIndex(0);
-                config.setTari(0);
-                reader.Config.Antennas.setAntennaRfConfig(1, config);
-            } catch (NullPointerException e) {
-                e.printStackTrace();
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 NullPointerException  - Defaults", e, "");
-            }
+
+            config = reader.Config.Antennas.getAntennaRfConfig(1);
+            config.setTransmitPowerIndex(MAX_POWER);
+            config.setrfModeTableIndex(0);
+            config.setTari(0);
+            reader.Config.Antennas.setAntennaRfConfig(1, config);
+
             // singulation to S0
             Antennas.SingulationControl s1_singulationControl = reader.Config.Antennas.getSingulationControl(1);
             s1_singulationControl.setSession(SESSION.SESSION_S0);
             s1_singulationControl.Action.setInventoryState(INVENTORY_STATE.INVENTORY_STATE_A);
             s1_singulationControl.Action.setSLFlag(SL_FLAG.SL_ALL);
             reader.Config.Antennas.setSingulationControl(1, s1_singulationControl);
-        } catch (InvalidUsageException e) {
+        }
+         catch (NullPointerException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - Defaults", e, "");
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 NullPointerException  - Defaults", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+        }
+        catch (InvalidUsageException e) {
+            e.printStackTrace();
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - Defaults", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
         } catch (OperationFailureException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - Defaults", e, "");
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - Defaults", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
             return e.getResults().toString() + " " + e.getVendorMessage();
         }
         return "Default settings applied";
     }
 
     public boolean isReaderConnected() {
-        if (reader != null && reader.isConnected())
-            return true;
-        else {
-            Log.d(TAG, "reader is not connected");
-            return false;
+        try{
+            if (reader != null && reader.isConnected())
+                return true;
+        }catch (Exception ex){
+            ex.printStackTrace();
         }
+        return false;
     }
 
     //
@@ -185,14 +194,21 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             // Based on support available on host device choose the reader type
             InvalidUsageException invalidUsageException = null;
             try {
+                context.registerReceiver(null, new IntentFilter(BluetoothDevice.ACTION_FOUND), RECEIVER_EXPORTED);
                 readers = new Readers(context, ENUM_TRANSPORT.BLUETOOTH);
                 RFIDHandlerV2.availableRFIDReaderList = readers.GetAvailableRFIDReaderList();
-                RfidGlobalVariables.observerPreparedZebraManager.onPrepared(RFIDHandlerV2.availableRFIDReaderList);
+                RfidGlobalVariables.observerPreparedZebraManager.onPrepared(/*RFIDHandlerV2.availableRFIDReaderList*/);
                 // todo
             } catch (InvalidUsageException e) {
                 e.printStackTrace();
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - CreateInstanceTask doInBackground", e, "");
+                //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - CreateInstanceTask doInBackground", e, "");
+                MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
                 invalidUsageException = e;
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                //Dx.error(context, context.getString(R.string.error_conexion_bluetooth));
+                MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
             }
             if (invalidUsageException != null) {
                 readers.Dispose();
@@ -222,7 +238,8 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             reader.Actions.Inventory.stop();*/
         }catch (Exception ex){
             MyLog.e(ex);
-//            Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 Exception  - startLocalizarTag", ex, "");
+            //Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 Exception  - startLocalizarTag", ex, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
         }
 
     /*    try {
@@ -245,7 +262,8 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             reader.Actions.Inventory.stop();
         }catch (Exception ex){
             MyLog.e(ex);
-//            Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 Exception  - stopLocalizarTag", ex, "");
+            //Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 Exception  - stopLocalizarTag", ex, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
         }
 
     /*    try {
@@ -279,7 +297,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    private synchronized void GetAvailableReader() {
+    public synchronized void GetAvailableReader() {
         Log.d(TAG, "GetAvailableReader");
         try {
             if (readers != null) {
@@ -311,7 +329,8 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             }
         } catch (InvalidUsageException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - GetAvailableReader", e, "");
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - GetAvailableReader", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
         }
     }
 
@@ -324,8 +343,8 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
     @Override
     public void RFIDReaderDisappeared(ReaderDevice readerDevice) {
-        Log.d(TAG, "RFIDReaderDisappeared " + readerDevice.getName());
-        if (readerDevice.getName().equals(reader.getHostName())){
+        //Log.d(TAG, "RFIDReaderDisappeared " + readerDevice.getName());
+        if (readerDevice != null && reader != null && readerDevice.getName().equals(reader.getHostName())){
             disconnect();
             this.connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.RFID_MODE);
         }
@@ -337,14 +356,14 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             Log.d(TAG, "connect " + reader.getHostName());
             try {
 //                if (!reader.isConnected()) {
-                // Establish connection to the RFID Reader
+                    // Establish connection to the RFID Reader
 
                 reader.connect();
 
 
                 MyLog.c("Inicio");
 
-
+                if (reader.Config == null) return "";
                 RegulatoryConfig regulatoryConfig = reader.Config.getRegulatoryConfig();
                 RegionInfo regionInfo = reader.ReaderCapabilities.SupportedRegions.getRegionInfo(18);
                 regulatoryConfig.setRegion(regionInfo.getRegionCode());
@@ -357,16 +376,18 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
 
 
-                ConfigureReader();
-                connectedHandlerInterface.handleConnection(ZebraManagerV2.CONNECTED, ZebraManagerV2.RFID_MODE);
-                return "Connected";
+                    ConfigureReader();
+                    connectedHandlerInterface.handleConnection(ZebraManagerV2.CONNECTED, ZebraManagerV2.RFID_MODE);
+
+                    return "Connected";
 //                } else {
 //                    return "Ya conectado";
 //                }
             }catch (InvalidUsageException e) {
                 e.printStackTrace();
+                MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
                 MyLog.d( "InvalidUsageException -->" + e.getVendorMessage());
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - connect", e, "");
+                //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - connect", e, "");
                 connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.RFID_MODE);
                 MyLog.d("FALLO EN LA CONEXIÓN RFID. INVALIDUSAGEEXCEPTION. INTENTANDO RECONECTAR...");
                 this.disconnect();
@@ -374,7 +395,8 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 //                return this.connect();
             } catch (OperationFailureException e) {
                 e.printStackTrace();
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - connect", e, "");
+                //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - connect", e, "");
+                MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 
                 MyLog.d("OperationFailureException -->" + e.getVendorMessage());
 
@@ -383,7 +405,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                 MyLog.c(e.getResults().toString());
                 MyLog.c(e.getResults().ordinal + " -> " + e.getVendorMessage());
 
-                //  if (e.getResults() == RFIDResults.RFID_READER_REGION_NOT_CONFIGURED) {
+              //  if (e.getResults() == RFIDResults.RFID_READER_REGION_NOT_CONFIGURED) {
                 if (e.getResults().ordinal == 107) {
                     MyLog.c("Demtrp");
 
@@ -416,10 +438,13 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
 
                         reader.Config.setRegulatoryConfig(regulatoryConfig);
-
                         reader.connect();
                     }catch (Exception ex){
-                        MyLog.c("Peta otra cosa..."  + ex.toString());
+                      //  MyLog.c("Peta otra cosa..."  + ex.toString());
+                        MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+                        this.disconnect();
+
+
                     }
 
 
@@ -440,14 +465,6 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                 }
                 return "Connection failed" + e.getVendorMessage() + " " + des;
 
-            } catch (Exception e) {
-                e.printStackTrace();
-//                MyLog.d( "InvalidUsageException -->" + e.getVendorMessage());
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - connect", e, "");
-                connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.RFID_MODE);
-                MyLog.d("FALLO EN LA CONEXIÓN RFID. GENERIC EXCEPTION. INTENTANDO RECONECTAR...");
-                this.disconnect();
-                return "";
             }
         }else {
             return "Ya conectado";
@@ -505,9 +522,10 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
 
 
-            } catch (InvalidUsageException | OperationFailureException e) {
+            } catch (InvalidUsageException | OperationFailureException | NullPointerException e) {
                 e.printStackTrace();
-//                Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException | OperationFailureException  - ConfigureReader", e, "");
+                MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+                //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException | OperationFailureException  - ConfigureReader", e, "");
             }
         }
     }
@@ -516,13 +534,17 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
     {
         try
         {
-            if (mode.equals("Barcode") && reader != null)
-            {
-                reader.Config.setTriggerMode(ENUM_TRIGGER_MODE.BARCODE_MODE, false);
-            }
-            else if (mode.equals("RFID") && reader != null)
-            {
-                reader.Config.setTriggerMode(ENUM_TRIGGER_MODE.RFID_MODE, false);
+            if (reader != null && reader.Config != null){
+                if (mode.equals("Barcode") && reader != null)
+                {
+                    reader.Config.setTriggerMode(ENUM_TRIGGER_MODE.BARCODE_MODE, false);
+                }
+                else if (mode.equals("RFID") && reader != null)
+                {
+                    reader.Config.setTriggerMode(ENUM_TRIGGER_MODE.RFID_MODE, false);
+                }
+            } else {
+                //Dx.error(context, "Existe un fallo con la conexión de su pistola. Revisela y vuelva a conectarla.");
             }
 
 //            SetAttribute setAttributeinfo = new SetAttribute();
@@ -531,12 +553,16 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
         catch (InvalidUsageException ex)
         {
             ex.printStackTrace();
-//            Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 InvalidUsageException  - SetTriggerMode", ex, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
+            //Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 InvalidUsageException  - SetTriggerMode", ex, "");
         }
         catch (OperationFailureException ex)
         {
             ex.printStackTrace();
-//            Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 OperationFailureException  - SetTriggerMode", ex, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
+            //Helper.TratarExcepcion(context, ex.getMessage(), "RFIDHandlerV2 OperationFailureException  - SetTriggerMode", ex, "");
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -549,12 +575,15 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             }
         } catch (InvalidUsageException e) {
             e.printStackTrace();
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 //            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - disconnect", e, "");
         } catch (OperationFailureException e) {
             e.printStackTrace();
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 //            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - disconnect", e, "");
         } catch (Exception e) {
             e.printStackTrace();
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 //            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 Exception  - disconnect", e, "");
         }
     }
@@ -568,6 +597,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 //            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 Exception  - dispose", e, "");
         }
     }
@@ -580,10 +610,12 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             reader.Actions.Inventory.perform();
         } catch (InvalidUsageException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - performInventory", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - performInventory", e, "");
         } catch (OperationFailureException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - performInventory", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - performInventory", e, "");
         }
     }
 
@@ -595,12 +627,15 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
             reader.Actions.Inventory.stop();
         } catch (InvalidUsageException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - stopInventory", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException  - stopInventory", e, "");
         } catch (OperationFailureException e) {
             e.printStackTrace();
-//            Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - stopInventory", e, "");
+            MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
+            //Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 OperationFailureException  - stopInventory", e, "");
         }
     }
+
 
 
     // Read/Status Notify handler
@@ -626,7 +661,6 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                 // handle tag data responses on parallel thread thus THREAD_POOL_EXECUTOR
                 new AsyncDataUpdate().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, myTags);
             }
-
         }
 
         // Status Event Notification
@@ -654,6 +688,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                     }.execute();*/
                     }catch (Exception ex){
                         MyLog.e(ex.toString());
+                        MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
                     }
                 }
                 if (rfidStatusEvents.StatusEventData.HandheldTriggerEventData.getHandheldEvent() == HANDHELD_TRIGGER_EVENT_TYPE.HANDHELD_TRIGGER_RELEASED) {
@@ -673,6 +708,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
 
                     }catch (Exception ex){
                         MyLog.e(ex.toString());
+                        MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + ex.getMessage());
                     }
                 }
             }
@@ -680,10 +716,9 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                 connectedHandlerInterface.handleConnection(ZebraManagerV2.DISCONNECTED, ZebraManagerV2.RFID_MODE);
             }
             else if (rfidStatusEvents.StatusEventData.getStatusEventType() == STATUS_EVENT_TYPE.BATTERY_EVENT) {
-                //TODO:amortega Quitar comentario de bateria
-//                final Events.InfoData batteryData = rfidStatusEvents.StatusEventData.BatteryData;
-//                resetTimer();
-//                connectedHandlerInterface.handleBattery(batteryData.getLevel(), batteryData.getCharging(), batteryData.getCause());
+                final Events.BatteryData batteryData = rfidStatusEvents.StatusEventData.BatteryData;
+                resetTimer();
+                connectedHandlerInterface.handleBattery(batteryData.getLevel(), batteryData.getCharging(), batteryData.getCause());
             }
 //            else if (rfidStatusEvents.StatusEventData.getStatusEventType() == STATUS_EVENT_TYPE.TEMPERATURE_ALARM_EVENT) {
 //                final Events.TemperatureAlarmData temperatureAlarmData = rfidStatusEvents.StatusEventData.TemperatureAlarmData;
@@ -712,6 +747,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
                             stopTimer();
                     } catch (InvalidUsageException | OperationFailureException e) {
                         e.printStackTrace();
+                        MyLog.e("ERROR "+ new Object(){}.getClass().getEnclosingMethod().getName() + ": " + e.getMessage());
 //                        Helper.TratarExcepcion(context, e.getMessage(), "RFIDHandlerV2 InvalidUsageException | OperationFailureException  - startTimer", e, "");
                     }
                 }

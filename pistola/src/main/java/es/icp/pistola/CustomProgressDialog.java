@@ -3,6 +3,9 @@ package es.icp.pistola;
 import android.app.ProgressDialog;
 import android.content.Context;
 
+/**
+ * Custom Dialog to be shown when sending commands to the RFID Reader
+ */
 public class CustomProgressDialog extends ProgressDialog {
     private static final String MESSAGE = "Saving Settings....";
 

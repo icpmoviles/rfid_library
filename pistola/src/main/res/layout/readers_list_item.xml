@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <CheckedTextView
+        android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+        android:clickable="false"
+        android:gravity="center_vertical"
+        android:id="@+id/reader_checkedtextview"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/reader_detail"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <TableRow
+            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent">
+
+            <TextView
+                android:gravity="left"
+                android:layout_weight="20"
+                android:layout_width="0dp"
+                android:text="@string/serial"
+                style="@style/style_small_font" />
+
+            <TextView
+                android:layout_weight="10"
+                android:layout_width="0dp"
+                android:text=":"
+                style="@style/style_small_font" />
+
+            <TextView
+                android:gravity="left"
+                android:id="@+id/tv_serial"
+                android:layout_weight="70"
+                android:layout_width="0dp"
+                style="@style/style_small_font" />
+        </TableRow>
+
+        <TableRow
+            android:gravity="center"
+            android:id="@+id/autoDetectReadersRow"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent">
+
+            <TextView
+                android:gravity="left"
+                android:id="@+id/autoDetectReadersTitle"
+                android:layout_weight="20"
+                android:layout_width="0dp"
+                android:text="@string/readers_list_item_autoDetectReadersTitle_text"
+                style="@style/style_small_font" />
+
+            <TextView
+                android:layout_weight="10"
+                android:layout_width="0dp"
+                android:text=":"
+                style="@style/style_small_font" />
+
+            <TextView
+                android:gravity="left"
+                android:id="@+id/tv_model"
+                android:layout_weight="70"
+                android:layout_width="0dp"
+                style="@style/style_small_font" />
+        </TableRow>
+
+
+    </LinearLayout>
+</LinearLayout>

@@ -3,6 +3,9 @@ package es.icp.pistola;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+/**
+ * Created by qvfr34 on 9/19/2014.
+ */
 public class Barcode implements Parcelable {
     byte[] barcodeData;
     int barcodeType;
@@ -66,15 +69,15 @@ public class Barcode implements Parcelable {
     }
     public static final Creator<Barcode> CREATOR = new Creator<Barcode>() {
 
-        @Override
-        public Barcode createFromParcel(Parcel source) {
-            return new Barcode(source);
-        }
+    @Override
+    public Barcode createFromParcel(Parcel source) {
+        return new Barcode(source);
+    }
 
-        @Override
-        public Barcode[] newArray(int size) {
-            return new Barcode[size];
-        }
+    @Override
+    public Barcode[] newArray(int size) {
+        return new Barcode[size];
+    }
 
     };
 }

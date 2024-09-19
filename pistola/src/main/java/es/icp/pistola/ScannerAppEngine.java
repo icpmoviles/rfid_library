@@ -1,6 +1,5 @@
 package es.icp.pistola;
 
-
 import android.content.Context;
 
 import com.zebra.scannercontrol.DCSSDKDefs;
@@ -101,37 +100,37 @@ public interface ScannerAppEngine {
 
     /* API calls for UI View Controllers */
     /**
-     * Method to remove a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to remove a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be added
      */
     void addDevListDelegate(IScannerAppEngineDevListDelegate delegate);
 
     /**
-     * Method to add a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to add a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be added
      */
     void addDevConnectionsDelegate(IScannerAppEngineDevConnectionsDelegate delegate);
 
     /**
-     * Method to add a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to add a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be added
      */
     void addDevEventsDelegate(IScannerAppEngineDevEventsDelegate delegate);
 
     /**
-     * Method to remove a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to remove a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be removed
      */
     void removeDevListDelegate(IScannerAppEngineDevListDelegate delegate);
 
     /**
-     * Method to remove a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to remove a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be removed
      */
     void removeDevConnectiosDelegate(IScannerAppEngineDevConnectionsDelegate delegate);
 
     /**
-     * Method to remove a {@link IScannerAppEngineDevListDelegate} from the list of delegates
+     * Method to remove a {@link ScannerAppEngine.IScannerAppEngineDevListDelegate} from the list of delegates
      * @param delegate Delegate to be removed
      */
     void removeDevEventsDelegate(IScannerAppEngineDevEventsDelegate delegate);

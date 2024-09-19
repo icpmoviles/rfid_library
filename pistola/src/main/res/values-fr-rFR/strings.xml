@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fragment_readers_list_bondedReadersTitle_text"> Lecteurs disponibles </string>
+    <string name="fragment_readers_list_empty_text"> Aucun lecteur trouvé </string>
+    <string name="readers_list_item_autoDetectReadersTitle_text"> Modèle </string>
+    <string name="vibracion_off"> Vibration OFF </string>
+    <string name="vibracion_on"> Vibration ON </string>
+    <string name="informaci_n_de_la_bater_a_rfid"> Informations sur la batterie RFID </string>
+    <string name="conectado"> Connecté </string>
+    <string name="error_conexion_intentelo_nuevamente"> Erreur de connexion. Veuillez réessayer. </string>
+    <string name="conectado_con"> Connexion avec </string>
+    <string name="desconectado"> Déconnecté </string>
+    <string name="serial"> Série </string>
+    <string name="battery_percentage_text">0%</string>
+    <string name="battery_no_active_connection_message"> Statut: Pas de connexion active </string>
+    <string name="charger_connected"> Chargeur du pistolet connecté </string>
+    <string name="charger_disconnected"> Chargeur du pistolet déconnecté </string>
+    <string name="battery_critical"> niveau de charge critique de la batterie </string>
+    <string name="battery_low"> niveau de charge faible de la batterie </string>
+</resources>

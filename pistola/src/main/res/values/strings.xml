@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="connect_reader_menu_item_text" translatable="false"> Connect Reader </string>
+    <string name="change_reader_menu_item_text" translatable="false"> Change Reader </string>
+    <string name="disconnect_reader_menu_item_text" translatable="false"> Disconnect Reader </string>
+    <string name="reset_reader_menu_item_text" translatable="false"> Reset Reader </string>
 
-    <string name="notificacion_no_progress">La notificación no permite progress</string>
-    <string name="notificacion_no_simple">La notificación no permite simple</string>
+    <string name="fragment_readers_list_bondedReadersTitle_text"> Lectores disponibles </string>
+    <string name="fragment_readers_list_empty_text"> No se encontraron lectores </string>
+    <string name="readers_list_item_autoDetectReadersTitle_text"> Modelo </string>
+    <string name="vibracion_off"> Vibración OFF </string>
+    <string name="vibracion_on"> Vibración ON </string>
+    <string name="informaci_n_de_la_bater_a_rfid">Información de la batería RFID</string>
+    <string name="conectado"> Conectado </string>
+    <string name="error_conexion_intentelo_nuevamente"> Error de conexión. Intente de nuevo… </string>
+    <string name="conectado_con"> Conectando con </string>
+    <string name="desconectado"> Desconectado </string>
+    <string name="serial"> Serial </string>
+    <string name="battery_percentage_text">0%</string>
+    <string name="battery_no_active_connection_message">Status: No active connection</string>
+    <string name="charger_connected">Cargador pistola conectado</string>
+    <string name="charger_disconnected">Cargador pistola desconectado</string>
+    <string name="battery_critical">Batería con carga crítica</string>
+    <string name="battery_low">Batería con carga baja</string>
 </resources>
