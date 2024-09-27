@@ -41,8 +41,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
     //RFID - Zebra
-    implementation project(':RFIDAPI3Library')
-    implementation project(':BarcodeScannerLibrary')
+    api project(':RFIDAPI3Library')
+    api project(':BarcodeScannerLibrary')
 
     //Commons
     implementation 'com.github.icpmoviles:icp_commons:4.1.17'
@@ -55,8 +55,8 @@ afterEvaluate {
     publishing{
         publications{
             maven(MavenPublication){
-                groupId 'es.icp.pistola'
-                artifactId 'pistola'
+                groupId 'com.github.icpmoviles'
+                artifactId 'rfid_library'
                 version '1.0.0'
                 from components.release
             }
