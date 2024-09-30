@@ -1,3 +1,3 @@
-include ':RFIDAPI3Library'
-include ':BarcodeScannerLibrary'
+//include ':RFIDAPI3Library'
+//include ':BarcodeScannerLibrary'
 include ':pistola'
