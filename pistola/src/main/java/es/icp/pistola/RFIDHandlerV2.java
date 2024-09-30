@@ -33,6 +33,7 @@ import com.zebra.rfid.api3.SL_FLAG;
 import com.zebra.rfid.api3.START_TRIGGER_TYPE;
 import com.zebra.rfid.api3.STATUS_EVENT_TYPE;
 import com.zebra.rfid.api3.STOP_TRIGGER_TYPE;
+import com.zebra.rfid.api3.TagData;
 import com.zebra.rfid.api3.TriggerInfo;
 
 import java.util.ArrayList;
@@ -645,7 +646,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
         // Read Event Notification
         public void eventReadNotify(RfidReadEvents e) {
             // Recommended to use new method getReadTagsEx for better performance in case of large tag population
-            TagData[] myTags = (es.icp.pistola.TagData[]) reader.Actions.getReadTags(RfidGlobalVariables.TAGS_LEER_RFID);
+            TagData[] myTags = (TagData[]) reader.Actions.getReadTags(RfidGlobalVariables.TAGS_LEER_RFID);
             if (myTags != null) {
                 for (int index = 0; index < myTags.length; index++) {
                     Log.d(TAG, "Tag ID " + myTags[index].getTagID());
