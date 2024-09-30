@@ -20,7 +20,6 @@ import androidx.core.content.ContextCompat;
 import com.zebra.rfid.api3.InvalidUsageException;
 import com.zebra.rfid.api3.RFIDReader;
 import com.zebra.rfid.api3.ReaderDevice;
-import com.zebra.rfid.api3.TagData;
 
 import es.icp.icp_commons.CustomNotification;
 import es.icp.icp_commons.PreferenciasHelper;
@@ -31,6 +30,7 @@ import es.icp.pistola.Constantes;
 import es.icp.pistola.DeviceConnectTask;
 import es.icp.pistola.ObserverPreparedZebraManager;
 import es.icp.pistola.R;
+import es.icp.pistola.TagData;
 import es.icp.pistola.ui.adapters.ReaderListAdapter;
 import es.icp.pistola.ResponseHandlerInterface;
 import es.icp.pistola.RfidGlobalVariables;

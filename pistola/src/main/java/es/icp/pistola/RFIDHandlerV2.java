@@ -769,7 +769,7 @@ public class RFIDHandlerV2 implements Readers.RFIDReaderEventHandler {
         @Override
         protected Void doInBackground(TagData[]... params) {
             if (RfidGlobalVariables.PUEDE_LEER_RFID) {
-                responseHandlerInterface.handleTagdata(params[0]);
+                responseHandlerInterface.handleTagdata((es.icp.pistola.TagData[]) params[0]);
             }
 
             return null;
