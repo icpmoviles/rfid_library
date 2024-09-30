@@ -41,8 +41,10 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
     //RFID - Zebra
-    api project(':RFIDAPI3Library')
-    api project(':BarcodeScannerLibrary')
+    //implementation project(':RFIDAPI3Library')
+    implementation 'com.github.icpmoviles:RFIDAPI3Library:1.0'
+    //implementation project(':BarcodeScannerLibrary')
+    implementation 'com.github.icpmoviles:BarcodeScannerLibrary:1.0'
 
     //Commons
     implementation 'com.github.icpmoviles:icp_commons:4.1.17'
@@ -59,6 +61,16 @@ afterEvaluate {
                 artifactId 'rfid_library'
                 version '1.0.0'
                 from components.release
+
+//                pom.withXml {
+//                    def dependenciesNode = asNode().appendNode("dependencies")
+//                    configurations.api.allDependencies.each { dependency ->
+//                        def dependencyNode = dependenciesNode.appendNode("dependency")
+//                        dependencyNode.appendNode("groupId", dependency.group)
+//                        dependencyNode.appendNode("artifactId", dependency.name)
+//                        dependencyNode.appendNode("version", dependency.version)
+//                    }
+//                }
             }
         }
     }
