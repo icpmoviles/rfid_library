@@ -1,3 +1,0 @@
-install: 
-  - FILE="-Dfile=API3_LIB-release-2.0.1.19.aar" 
-  - mvn install:install-file $FILE -DgroupId=com.github.icpmoviles -DartifactId=RFIDAPI3Library -Dversion=1.0 -Dpackaging=aar -DgeneratePom=true
